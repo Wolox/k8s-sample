@@ -1,0 +1,19 @@
+replicaCount: 4
+
+service:
+  type: NodePort
+  containerPort: 8080
+  externalPort: 80
+  host: stg.k8s-sample.yourdomain.com
+
+healthCheckPath: /health
+requestedMemory: "100Mi"
+requestedCpu: "250m"
+# memoryLimit: "200Mi"
+# cpuLimit: "500m"
+
+# autoscaling section
+hpa:
+  cpu: 15
+  maxReplicas: 10
+  enabled: true
