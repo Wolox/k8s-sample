@@ -1,0 +1,64 @@
+.deploy:template: &deployment_definition
+  stage: deploy
+  image: alpine
+  when: manual
+  environment:
+    name: develop
+  before_script:
+    - apk add --no-cache curl
+    - apk add --update openssl
+    - curl https://raw.githubusercontent.com/helm/helm/master/scripts/get > get_helm.sh
+    - chmod 700 get_helm.sh
+    - /bin/sh get_helm.sh --version v2.11.0
+    - curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
+    - chmod +x ./kubectl
+    - mv ./kubectl /usr/local/bin/kubectl
+    - kubectl config set-cluster nosebit --server="$KUBE_URL" --insecure-skip-tls-verify=true
+    - kubectl config set-credentials admin --token="$KUBE_TOKEN"
+    - kubectl config set-context default --cluster=nosebit --user=admin
+    - kubectl config use-context default
+  script:
+    - export NS_EXISTS=$(kubectl get ns $ENV)
+    - if [ -z "$NS_EXISTS" ]; then kubectl create ns $ENV; fi
+    - export VAULT_TOKEN_EXISTS=$(kubectl get secret vault-token -n $ENV)
+    - if [ -z "$VAULT_TOKEN_EXISTS" ]; then kubectl create secret generic vault-token --from-literal=vaultToken=$VAULT_TOKEN -n $ENV; fi
+    - export MS_SECRET=$(kubectl get secret k8s-sample-gitlab-registry -n $ENV)
+    - if [ -z "$MS_SECRET" ]; then kubectl create secret docker-registry k8s-sample-gitlab-registry --docker-server=registry.gitlab.com --docker-username=$GITLAB_DEPLOY_TOKEN_USERNAME --docker-email=doesnotmatter@example.com --docker-password=$GITLAB_DEPLOY_TOKEN_SECRET --namespace=$ENV; fi
+    - helm init --client-only
+    - helm upgrade -i k8s-sample-$ENV ./charts/k8s-sample -f ./charts/config/$ENV-values.yaml --namespace $ENV --set image=$IMAGE_NAME:${CI_COMMIT_SHA:0:8} --set version=${CI_COMMIT_SHA:0:8} --wait
+
+variables:
+  DOCKER_DRIVER: overlay2
+  IMAGE_NAME: registry.gitlab.com/infra-kubernetes/k8s-sample
+
+
+image: docker:latest
+services:
+  - docker:dind
+
+stages:
+  - build
+  - deploy
+
+build:
+  stage: build
+  script:
+    - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN registry.gitlab.com
+    - docker pull $IMAGE_NAME:latest
+    - docker build --cache-from $IMAGE_NAME:latest -t $IMAGE_NAME:${CI_COMMIT_SHA:0:8} -t $IMAGE_NAME:latest .
+    - docker push $IMAGE_NAME:${CI_COMMIT_SHA:0:8}
+    - docker push $IMAGE_NAME:latest
+
+deploy.dev:
+  dependencies:
+    - build
+  variables:
+    ENV: dev
+  <<: *deployment_definition
+
+deploy.stg:
+  dependencies:
+    - build
+  variables:
+    ENV: stg
+  <<: *deployment_definition

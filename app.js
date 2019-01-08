@@ -47,9 +47,9 @@ const init = () => {
 
   Promise.resolve()
     .then(() => {
-      if (!config.isTesting) {
-        return migrationsManager.check();
-      }
+      // if (!config.isTesting) {
+      //   return migrationsManager.check();
+      // }
     })
     .then(() => {
       routes.init(app);

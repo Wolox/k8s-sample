@@ -1,0 +1,49 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    app: {{ template "podinfo.name" . }}
+    chart: {{ template "podinfo.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+    serviceName: {{ template "podinfo.name" . }}
+  annotations:
+    getambassador.io/config: |
+      ---
+      apiVersion: ambassador/v0
+      kind:  Mapping
+      name:  {{ .Release.Namespace }}-{{ template "podinfo.name" . }}
+      prefix: /
+      service: {{ .Release.Name }}.{{.Release.Namespace}}
+      host: {{ .Values.service.host }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.externalPort }}
+      targetPort: http
+      protocol: TCP
+      name: http
+      {{- if (and (eq .Values.service.type "NodePort") (not (empty .Values.service.nodePort))) }}
+      nodePort: {{ .Values.service.nodePort }}
+      {{- end }}
+  selector:
+    app: {{ template "podinfo.name" . }}
+    release: {{ .Release.Name }}
+---
+
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    release: prometheus-operator
+    app: prometheus-operator
+spec:
+  selector:
+    matchLabels:
+      serviceName: {{ template "podinfo.name" . }}
+  endpoints:
+  - port: http
+    interval: 5s
+    path: /metrics

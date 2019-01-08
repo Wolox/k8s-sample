@@ -1,7 +1,7 @@
 {
-  "name": "express-js-bootstrap",
+  "name": "kubernetes-sample",
   "version": "0.1.0",
-  "description": "Kickoff for ExpressJS applications",
+  "description": "Kubernetes Sample",
   "engines": {
     "node": "10.13.0",
     "npm": "6.4.1"
@@ -28,15 +28,14 @@
   ],
   "main": "app.js",
   "author": "Wolox",
-  "homepage": "https://github.com/Wolox/express-js-bootstrap",
+  "homepage": "https://github.com/Wolox/kubernetes-sample",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Wolox/express-js-bootstrap.git"
+    "url": "https://github.com/Wolox/kubernetes-sample.git"
   },
   "bugs": {
-    "url": "https://github.com/Wolox/express-js-bootstrap/issues",
-    "email": "tls@wolox.com.ar"
+    "url": "https://github.com/Wolox/kubernetes-sample/issues"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

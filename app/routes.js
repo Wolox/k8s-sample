@@ -1,17 +1,11 @@
-const auth = require('./middlewares/auth'),
-  books = require('./controllers/books'),
-  users = require('./controllers/users'),
-  unknownResource = require('./controllers/unknownResource');
+// const controller = require('./controllers/controller');
 
 exports.init = app => {
-  // Users
-  app.post('/users/sessions', [], users.login);
-  app.get('/users/me', [auth.secure], users.loggedUser);
-  app.put('/users', [auth.secure], users.update);
-  app.post('/users', [], users.create);
-  app.post('/logout', [auth.secure], users.logout);
-
-  // Books
-  app.get('/books', [], books.getAll);
-  app.get('/books/:id', [], books.getById);
+  // app.get('/endpoint/get/path', [], controller.methodGET);
+  // app.put('/endpoint/put/path', [], controller.methodPUT);
+  // app.post('/endpoint/post/path', [], controller.methodPOST);
+  app.get('/health', [], (req, res, next) => res.status(200).end());
+  app.get('/203', [], (req, res, next) => res.status(203).end());
+  app.get('/internalError', [], (req, res, next) => res.status(500).end());
+  app.get('/notFound', [], (req, res, next) => res.status(404).end());
 };

@@ -1,0 +1,79 @@
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    app: {{ template "podinfo.name" . }}
+    chart: {{ template "podinfo.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  revisionHistoryLimit: 1
+  selector:
+    matchLabels:
+      app: {{ template "podinfo.name" . }}
+      release: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ template "podinfo.name" . }}
+        release: {{ .Release.Name }}
+        version: "{{ .Values.version }}"
+        app-version: "{{ .Values.version }}"
+      annotations:
+        prometheus.io/scrape: 'true'
+    spec:
+      serviceAccount: {{ .Release.Name }}
+      imagePullPolicy: IfNotPresent
+      imagePullSecrets:
+        - name: {{ .Chart.Name }}-gitlab-registry
+      containers:
+        - name: {{ template "podinfo.name" . }}
+          image: "{{ .Values.image }}"
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          command: ["entrypoint/entrypoint.sh"]
+          env:
+            # Define the environment variable
+            - name: VAULT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: vault-token
+                  key: vaultToken
+            - name: VAULT_SECRETS_PATH
+              value: secret/{{ .Chart.Name }}-{{ .Release.Namespace }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.containerPort }}
+              protocol: TCP
+          resources:
+            requests:
+              memory: {{ .Values.requestedMemory | default "100Mi" }}
+              cpu: {{ .Values.requestedCpu | default  "250m" }}
+            limits:
+              {{- if (not (empty .Values.memoryLimit)) }}
+              memory: {{ .Values.memoryLimit }}
+              {{- end }}
+              {{- if (not (empty .Values.cpuLimit)) }}
+              cpu: {{ .Values.cpuLimit }}
+              {{- end }}
+          readinessProbe:
+            # an http probe
+            httpGet:
+              path: {{ .Values.healthCheckPath }}
+              port: {{ .Values.service.containerPort }}
+            # length of time to wait for a pod to initialize
+            # after pod startup, before applying health checking
+            initialDelaySeconds: 15
+            periodSeconds: 3
+            timeoutSeconds: 1
+          livenessProbe:
+            # an http probe
+            httpGet:
+              path: {{ .Values.healthCheckPath }}
+              port: {{ .Values.service.containerPort }}
+            # length of time to wait for a pod to initialize
+            # after pod startup, before applying health checking
+            initialDelaySeconds: 15
+            periodSeconds: 3
+            timeoutSeconds: 1

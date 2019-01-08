@@ -1,0 +1,19 @@
+image: changeme
+replicaCount: 4
+
+service:
+  type: ClusterIP
+  containerPort: 8080
+  externalPort: 80
+
+healthCheckPath: /health
+requestedMemory: "100Mi"
+requestedCpu: "250m"
+
+# autoscaling section
+hpa:
+  cpu: 15
+  maxReplicas: 10
+  enabled: true
+
+version: changeme
